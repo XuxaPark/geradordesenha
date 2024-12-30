@@ -1,56 +1,47 @@
+from flask import Flask, render_template, request
 import random
 import string
-import tkinter as tk
-from tkinter import ttk, messagebox
 
-def gerar_senha():
-    try:
-        tamanho = int(entry_tamanho.get())
-        incluir_numeros = var_numeros.get()
-        incluir_simbolos = var_simbolos.get()
+app = Flask(__name__)
 
-        caracteres = string.ascii_letters  # Letras maiúsculas e minúsculas
-        if incluir_numeros:
-            caracteres += string.digits  # Adiciona números
-        if incluir_simbolos:
-            caracteres += string.punctuation  # Adiciona símbolos
+def gerar_senha(tamanho=12, incluir_maiusculas=True, incluir_minusculas=True, incluir_numeros=True, incluir_simbolos=True):
+    caracteres = ""
+    if incluir_maiusculas:
+        caracteres += string.ascii_uppercase
+    if incluir_minusculas:
+        caracteres += string.ascii_lowercase
+    if incluir_numeros:
+        caracteres += string.digits
+    if incluir_simbolos:
+        caracteres += string.punctuation
+    if not caracteres:
+        return "Selecione pelo menos uma opção!"
+    senha = ''.join(random.choice(caracteres) for _ in range(tamanho))
+    return senha
 
-        if tamanho < 1:
-            raise ValueError("O tamanho deve ser pelo menos 1.")
+@app.route("/", methods=["GET", "POST"])
+def index():
+    senha_gerada = ""
+    # Valores padrão
+    tamanho = 12
+    incluir_maiusculas = True
+    incluir_minusculas = True
+    incluir_numeros = True
+    incluir_simbolos = True
 
-        senha = ''.join(random.choice(caracteres) for _ in range(tamanho))
-        entry_senha.delete(0, tk.END)
-        entry_senha.insert(0, senha)
-    except ValueError as e:
-        messagebox.showerror("Erro", f"Entrada inválida: {e}")
+    if request.method == "POST":
+        tamanho = int(request.form.get("tamanho", 12))
+        incluir_maiusculas = "maiusculas" in request.form
+        incluir_minusculas = "minusculas" in request.form
+        incluir_numeros = "numeros" in request.form
+        incluir_simbolos = "simbolos" in request.form
+        senha_gerada = gerar_senha(tamanho, incluir_maiusculas, incluir_minusculas, incluir_numeros, incluir_simbolos)
 
-# Configuração da janela principal
-janela = tk.Tk()
-janela.title("Gerador de Senhas")
+    return render_template("index.html", senha=senha_gerada, tamanho=tamanho,
+                           incluir_maiusculas=incluir_maiusculas,
+                           incluir_minusculas=incluir_minusculas,
+                           incluir_numeros=incluir_numeros,
+                           incluir_simbolos=incluir_simbolos)
 
-# Tamanho da senha
-ttk.Label(janela, text="Comprimento da senha:").grid(column=0, row=0, padx=10, pady=5, sticky="w")
-entry_tamanho = ttk.Entry(janela, width=10)
-entry_tamanho.grid(column=1, row=0, padx=10, pady=5)
-
-# Checkbox para incluir números
-var_numeros = tk.BooleanVar(value=True)
-check_numeros = ttk.Checkbutton(janela, text="Incluir números", variable=var_numeros)
-check_numeros.grid(column=0, row=1, padx=10, pady=5, sticky="w")
-
-# Checkbox para incluir símbolos
-var_simbolos = tk.BooleanVar(value=True)
-check_simbolos = ttk.Checkbutton(janela, text="Incluir símbolos", variable=var_simbolos)
-check_simbolos.grid(column=0, row=2, padx=10, pady=5, sticky="w")
-
-# Botão para gerar senha
-btn_gerar = ttk.Button(janela, text="Gerar Senha", command=gerar_senha)
-btn_gerar.grid(column=0, row=3, columnspan=2, pady=10)
-
-# Campo para exibir a senha gerada
-ttk.Label(janela, text="Senha gerada:").grid(column=0, row=4, padx=10, pady=5, sticky="w")
-entry_senha = ttk.Entry(janela, width=30)
-entry_senha.grid(column=0, row=5, columnspan=2, padx=10, pady=5)
-
-# Iniciar a interface
-janela.mainloop()
+if __name__ == "__main__":
+    app.run(debug=True)
